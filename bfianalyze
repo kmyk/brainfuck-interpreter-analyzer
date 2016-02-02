@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+import os
+import sys
+import argparse
+import subprocess
+import tempfile
+
+parser = argparse.ArgumentParser()
+parser.add_argument('path',
+    help='''brainfuck interpreter which takes the code from path $1 and takes the input from stdin. if your interpreter is not like this, please make a glue script file''')
+parser.add_argument('--trailing', type=bytes, help='some interpreter outputs trailing spaces (default: auto detect)')
+parser.add_argument('--memory-size', type=int, default=30000 * 10 + 10)
+args = parser.parse_args()
+
+def execbf(code, input=''): # None or bytes
+    fh = tempfile.NamedTemporaryFile(delete=False)
+    fh.write(code.encode())
+    fh.close()
+    p = subprocess.Popen([args.path, fh.name],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=sys.stderr, universal_newlines=False)
+    timeout = False
+    try:
+        stdout, _ = p.communicate(input.encode(), timeout=32)
+    except subprocess.TimeoutExpired:
+        p.kill()
+        stdout, _ = p.communicate()
+        timeout = True
+    os.unlink(fh.name)
+    trailing = b''
+    if args.trailing is not None and len(args.trailing) and stdout.endswith(args.trailing):
+        stdout = stdout[:-len(args.trailing)]
+        trailing = args.trailing
+    return { 'output': stdout, 'trailing': trailing, 'returncode': p.returncode, 'timeout': timeout }
+
+if args.trailing is None:
+    args.trailing = execbf('')['output']
+
+def yesno(a):
+    if a: return 'yes'
+    else: return 'no'
+
+print('trailing output:', repr(args.trailing.decode()))
+
+print('end of file: ', end='')
+same_n = 3
+result = execbf('+' * same_n + ',+' + '+' * ord('0') + '.')['output']
+if result == b'0':
+    print(-1)
+elif result == b'1':
+    print(0)
+elif result == str(same_n + 1).encode():
+    print('same')
+else:
+    print('unknown')
+
+print('move  negative  index: ', end='')
+print(yesno(execbf('<>,.', 'A')['output'] == b'A'))
+
+print('write negative  index: ', end='')
+print(yesno(execbf('<,.', 'A')['output'] == b'A'))
+
+print('move  too large index: ', end='')
+print(yesno(execbf('>' * args.memory_size + '<,.', 'A')['output'] == b'A'))
+
+print('write too large index: ', end='')
+print(yesno(execbf('>' * args.memory_size + ',.', 'A')['output'] == b'A'))
+
+print('arithmetic underflow: ', end='')
+print(yesno(execbf('-,.', 'A')['output'] == b'A'))
+
+print('cell size: ', end='')
+sys.stdout.flush()
+print(len(execbf(',.>+[<.>+]', 'A')['output']))
+
+print('arithmetic  overflow: ', end='')
+sys.stdout.flush()
+print(yesno(execbf('+[+],.', 'A')['output'] == b'A'))
