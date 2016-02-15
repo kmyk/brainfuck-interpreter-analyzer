@@ -112,10 +112,24 @@ try:
     print(cell_size)
 except TimeoutExpired as e:
     cell_size = None
-    print('timed out: at least', len(e.result['output']))
+    # 16777216f + 1f = 16777216f  (0x1000000)
+    if 0x1000000 < len(e.result['output']):
+        try:
+            single_float_checker = '++[>' * 23 + '++' + '<-]' * 23 + '>' * 24 + '+++' + '<' * 24 + '++[>' * 23 + '--' + '<-]' * 23 + '>' * 24 + '[,>],.'
+            single_float_cell = execbf(single_float_checker, 'AB')['output'] == b'B'
+        except TimeoutExpired:
+            single_float_cell = False
+    else:
+        single_float_cell = False
+    if single_float_cell:
+        print('single float')
+    else:
+        print('unknown (timed out, at least {})'.format(len(e.result['output'])))
 
 print('arithmetic  overflow: ', end='')
 if cell_size is not None:
     print(yesno(execbf('+[+],.', 'A')['output'] == b'A'))
+elif single_float_cell:
+    print('never')
 else:
     print('unknown')
