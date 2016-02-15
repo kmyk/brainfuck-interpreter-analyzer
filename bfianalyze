@@ -71,6 +71,11 @@ elif result == str(same_n + 1).encode():
 else:
     print('unknown')
 
+print('too large source code: ', end='')
+large_code = '+-><[,.]><' * 10000 + ',.'
+print(yesno(execbf(large_code, 'A')['output'] == b'A'),
+        '({} bytes)'.format(len(large_code)))
+
 print('move  negative  index: ', end='')
 print(yesno(execbf('<>,.', 'A')['output'] == b'A'))
 
