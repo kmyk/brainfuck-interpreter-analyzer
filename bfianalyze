@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('path',
     help='''brainfuck interpreter which takes the code from path $1 and takes the input from stdin. if your interpreter is not like this, please make a glue script file''')
 parser.add_argument('--trailing', type=bytes, help='some interpreter outputs trailing spaces (default: auto detect)')
-parser.add_argument('--memory-size', type=int, default=30000 * 10 + 10)
+parser.add_argument('--memory-size', type=int, default=30000)
 parser.add_argument('--timeout', type=int, default=12)
 args = parser.parse_args()
 
@@ -77,16 +77,30 @@ print(yesno(execbf(large_code, 'A')['output'] == b'A'),
         '({} bytes)'.format(len(large_code)))
 
 print('move  negative  index: ', end='')
-print(yesno(execbf('<>,.', 'A')['output'] == b'A'))
+negative_index_movable = execbf('<>,.', 'A')['output'] == b'A'
+print(yesno(negative_index_movable))
 
-print('write negative  index: ', end='')
-print(yesno(execbf('<,.', 'A')['output'] == b'A'))
+if negative_index_movable:
+    print('write negative  index: ', end='')
+    print(yesno(execbf('<,.', 'A')['output'] == b'A'))
+
+if negative_index_movable:
+    check_len = 1000
+    print('negative index initialized: ', end='')
+    print(yesno(execbf('<[,.[-]]' * check_len + ',.', 'A' * check_len + 'A')['output'] == b'A'))
 
 print('move  too large index: ', end='')
-print(yesno(execbf('>' * args.memory_size + '<,.', 'A')['output'] == b'A'))
+large_index_movable = execbf('>' * args.memory_size + '<,.', 'A')['output'] == b'A'
+print(yesno(large_index_movable))
 
-print('write too large index: ', end='')
-print(yesno(execbf('>' * args.memory_size + ',.', 'A')['output'] == b'A'))
+if large_index_movable:
+    print('write too large index: ', end='')
+    print(yesno(execbf('>' * args.memory_size + ',.', 'A')['output'] == b'A'))
+
+if large_index_movable:
+    check_len = 1000
+    print('too large index initialized: ', end='')
+    print(yesno(execbf('>' * args.memory_size + '[,.[-]]>' * check_len + ',.', 'A' * check_len + 'A')['output'] == b'A'))
 
 print('arithmetic underflow: ', end='')
 print(yesno(execbf('-,.', 'A')['output'] == b'A'))
