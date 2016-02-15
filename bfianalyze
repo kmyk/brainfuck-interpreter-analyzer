@@ -115,8 +115,8 @@ except TimeoutExpired as e:
     # 16777216f + 1f = 16777216f  (0x1000000)
     if 0x1000000 < len(e.result['output']):
         try:
-            single_float_checker = '++[>' * 23 + '++' + '<-]' * 23 + '>' * 24 + '+++' + '<' * 24 + '++[>' * 23 + '--' + '<-]' * 23 + '>' * 24 + '[,>],.'
-            single_float_cell = execbf(single_float_checker, 'AB')['output'] == b'B'
+            single_float_checker = '++[>' * 23 + '++' + '<-]' * 23 + '>' * 24 + '[>,.[-]]<[<]>+++' + '<' * 24 + '++[>' * 23 + '--' + '<-]' * 23 + '>' * 24 + '[,>],.'
+            single_float_cell = execbf(single_float_checker, 'ABC')['output'] == b'C'
         except TimeoutExpired:
             single_float_cell = False
     else:
