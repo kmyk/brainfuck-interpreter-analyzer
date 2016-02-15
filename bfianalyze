@@ -42,12 +42,20 @@ def execbf(code, input=''): # dict, or TimeoutExpired with dict
     else:
         return result
 
-if args.trailing is None:
-    args.trailing = execbf('')['output']
-
 def yesno(a):
     if a: return 'yes'
     else: return 'no'
+
+if args.trailing is None:
+    args.trailing = execbf('')['output']
+
+print('helloworld: ', end='')
+helloworld = ('++[>++[>++[>+++[>+++[>+<-][]<-]<-][]<-]<-]>>>>>.>++[>++[>++[<<<<++[>++<<<++>>-]>>>>-]<-]<-]<---.>>>[-]<<<+++++++>++[<.>-]+++[<+>-]<.<<+++[<<++++>>-]<[<+>>+<-]<.>>.>++[>>++[<+>-]>++[<<+>>-]<<<-]>.-------->+>+>+>+>+[<]>.[>]<+++,.------.--------.[,.[-]]<<<<', 'r!')
+if execbf(*helloworld)['output'] == b'Hello, world!':
+    print('ok')
+else:
+    print('no')
+    parser.error('the interpreter is not valid. (please confirm the usage of your interpreter is "$ INTERPRETER SOURCE_FILE < INPUT_FILE")')
 
 print('trailing output:', repr(args.trailing.decode()))
 
