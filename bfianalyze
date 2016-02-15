@@ -10,9 +10,13 @@ parser.add_argument('path',
     help='''brainfuck interpreter which takes the code from path $1 and takes the input from stdin. if your interpreter is not like this, please make a glue script file''')
 parser.add_argument('--trailing', type=bytes, help='some interpreter outputs trailing spaces (default: auto detect)')
 parser.add_argument('--memory-size', type=int, default=30000 * 10 + 10)
+parser.add_argument('--timeout', type=int, default=12)
 args = parser.parse_args()
 
-def execbf(code, input=''): # None or bytes
+class TimeoutExpired(Exception):
+    pass
+
+def execbf(code, input=''): # dict, or TimeoutExpired with dict
     fh = tempfile.NamedTemporaryFile(delete=False)
     fh.write(code.encode())
     fh.close()
@@ -20,7 +24,7 @@ def execbf(code, input=''): # None or bytes
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=sys.stderr, universal_newlines=False)
     timeout = False
     try:
-        stdout, _ = p.communicate(input.encode(), timeout=32)
+        stdout, _ = p.communicate(input.encode(), timeout=args.timeout)
     except subprocess.TimeoutExpired:
         p.kill()
         stdout, _ = p.communicate()
@@ -30,7 +34,13 @@ def execbf(code, input=''): # None or bytes
     if args.trailing is not None and len(args.trailing) and stdout.endswith(args.trailing):
         stdout = stdout[:-len(args.trailing)]
         trailing = args.trailing
-    return { 'output': stdout, 'trailing': trailing, 'returncode': p.returncode, 'timeout': timeout }
+    result = { 'output': stdout, 'trailing': trailing, 'returncode': p.returncode, 'timeout': timeout }
+    if timeout:
+        e = TimeoutExpired()
+        e.result = result
+        raise e
+    else:
+        return result
 
 if args.trailing is None:
     args.trailing = execbf('')['output']
@@ -70,8 +80,15 @@ print(yesno(execbf('-,.', 'A')['output'] == b'A'))
 
 print('cell size: ', end='')
 sys.stdout.flush()
-print(len(execbf(',.>+[<.>+]', 'A')['output']))
+try:
+    cell_size = len(execbf(',.>+[<.>+]', 'A')['output'])
+    print(cell_size)
+except TimeoutExpired as e:
+    cell_size = None
+    print('timed out: at least', len(e.result['output']))
 
 print('arithmetic  overflow: ', end='')
-sys.stdout.flush()
-print(yesno(execbf('+[+],.', 'A')['output'] == b'A'))
+if cell_size is not None:
+    print(yesno(execbf('+[+],.', 'A')['output'] == b'A'))
+else:
+    print('unknown')
